@@ -1,0 +1,200 @@
+# Concurrency and Safety
+
+Joshua Jon
+12 Jul 2023
+www.linkedin.com/in/joshua-jon
+
+## Overview {#anchor}
+
+- How concurrency works in Go
+- The basics
+- Data race detector
+- Concurrency patterns
+- Tying it all together
+
+## How concurrency works in Go
+
+## Concurrency vs Parallelism
+
+.image img/concurrency-chef.jpg 200 _
+.caption _Concurrency_
+.image img/parallelism-chef.jpg 200 _
+.caption _Parallelism_
+
+## Go runtime scheduler
+
+.image img/go-scheduler.png 470 _
+
+##  The basics
+
+##  Goroutines
+
+- The _`go`_ statement launches a function call as a goroutine
+
+	    go someFunc()
+
+- We can also start a goroutine for an anonymous function call
+
+        go func() {
+            // do something
+        }
+
+- Goroutines give us user-level threads, running on a set of kernel-level threads, managed by Go’s runtime
+- Allows developers to focus on writing correct concurrent programs whilst the rest is handled behind the scenes
+
+##  Synchronisation
+
+Goroutines require some form of synchronisation to be useful.
+
+A simple example:
+
+.play -numbers src/no_sync.go /main START/,/main END/
+
+Luckily Go comes with a variety of options to make synchronisation easy.
+
+##  Channels
+
+Channels are a typed conduit which allow values to be sent and received through.
+
+	chan string
+	chan<- string  // send only channel
+	<-chan T       // receive only channel
+
+Lets fix the previous example:
+
+.play -numbers src/channels.go /main START/,/main END/
+
+##  Channels
+
+What if we need to orchestrate?
+
+.play -numbers src/channels2.go /main START/,/main END/
+
+##  Wait Groups
+
+A Wait Group waits for a collection of goroutines to finish.
+
+.play -numbers src/wait_group.go /main START/,/main END/
+
+Another useful variation is the Error Group type: [golang.org/x/sync/errgroup](https://golang.org/x/sync/errgroup)
+
+##  Mutexes
+
+A Mutex is a mutual exclusion lock which allows an object to be locked and unlocked.
+
+It enables safe access and modification of a value from multiple goroutines.
+
+Without a mutex:
+
+.play -numbers src/no_mutex.go /main START/,/main END/
+
+##  Mutexes
+
+With a mutex:
+
+.play -numbers src/mutex.go /main START/,/main END/
+
+##  Atomic
+
+- Package atomic provides low-level atomic memory primitives that are useful for synchronisation.
+- Synchronisation is better done with channels or the facilities of the sync package.
+
+.play -numbers src/atomic.go /main START/,/main END/
+
+##  More synchronisation
+
+- _sync_
+- _sync/atomic_
+- _pkg.go.dev/golang.org/x/sync_
+
+##
+
+.image img/communication.jpeg 300 _
+
+**Don't communicate by sharing memory, share memory by communicating. (R. Pike)**
+
+##  Data race detector
+
+A data race occurs when two goroutines access the same variable concurrently and at least one of the accesses is a write.
+
+**Usage:**
+
+    $ go test -race mypkg    // to test the package
+    $ go run -race mysrc.go  // to run the source file
+    $ go build -race mycmd   // to build the command
+    $ go install -race mypkg // to install the package
+
+##  Data race detector
+
+    go run -race data_race.go
+
+_data_race.go_
+
+.code -numbers src/data_race.go /main START/,/main END/
+
+##  Data race detector
+
+    ==================
+    WARNING: DATA RACE
+    Write at 0x00c000116230 by goroutine 7:
+      main.main.func2()
+          /Users/josh/concurrency-and-safety/src/data_race.go:23 +0x68
+
+    Previous write at 0x00c000116230 by goroutine 6:
+      main.main.func1()
+          /Users/josh/concurrency-and-safety/src/data_race.go:18 +0x68
+
+    Goroutine 7 (running) created at:
+      main.main()
+          /Users/josh/concurrency-and-safety/src/data_race.go:21 +0x1c4
+
+    Goroutine 6 (finished) created at:
+      main.main()
+          /Users/josh/concurrency-and-safety/src/data_race.go:16 +0x124
+    ==================
+    bar
+    Found 1 data race(s)
+    exit status 66
+
+##  Concurrency Patterns
+
+##  Scheduler
+
+.code -numbers src/scheduler.go /Scheduler START/,/Scheduler END/
+
+.play -numbers src/scheduler.go /main START/,/main END/
+
+See it in action: [Google PubSub receive scheduler](https://github.com/googleapis/google-cloud-go/blob/main/pubsub/internal/scheduler/receive_scheduler.go#L30)
+
+##  Worker Pool
+
+.code -numbers src/pool.go /WorkerPool START/,/WorkerPool END/
+
+.play -numbers src/pool.go /main START/,/main END/
+
+##  Broker
+
+.code -numbers src/broker.go /Broker START/,/Broker END/
+
+## 
+
+.code -numbers src/broker.go /Start START/,/Start END/
+
+## 
+
+.play -numbers src/broker.go /main START/,/main END/
+
+##  Single Flight
+
+.code -numbers src/singleflight.go /SingleFlight START/,/SingleFlight END/
+
+## 
+.play -numbers src/singleflight.go /main START/,/main END/
+
+## Tying it all together
+
+## Job runner service
+
+.image img/jobrunner-diagram.png 380 _
+
+##  Questions
